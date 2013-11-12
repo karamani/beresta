@@ -1,0 +1,22 @@
+{
+    "name": "karamani/beresta",
+    "type": "behat-extension",
+    "description": "Extension for rest-features in Behat",
+    "keywords": ["test", "rest"],
+    "homepage": "http://github.com/karamani/beresta",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Yuri Karamani",
+            "email": "y.karamani@gmail.com"
+        }
+    ],
+
+    "require": {
+        "behat/behat": ">=2.4"
+    },
+
+    "autoload": {
+        "psr-0": { "Yuka\\Beresta": "src/" }
+    }
+}
