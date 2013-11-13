@@ -7,19 +7,48 @@ namespace Yuka\Beresta\SimpleRestClient;
  */
 class RestClient
 {
-	/**
-	 * @param \Yuka\Beresta\SimpleRestClient\Request $request
-	 * @return \Yuka\Beresta\SimpleRestClient\Response
-	 */
 	public function send(Request $request)
 	{
-		$curlHandle = curl_init();
+		$response = null;
 
-		$this->setCurlOptions($curlHandle, $request);
+		$curlHandle = curl_init();
+		$requestMethod = $request->getMethod();
+		try {
+			switch (strtoupper($requestMethod)) {
+				case 'GET':
+					$response = $this->executeGet($curlHandle, $request);
+					break;
+				case 'POST':
+					$response = $this->executePost($curlHandle, $request);
+					break;
+				case 'PUT':
+					$response = $this->executePut($curlHandle, $request);
+					break;
+				case 'DELETE':
+					$response = $this->executeDelete($curlHandle, $request);
+					break;
+				default:
+					throw new InvalidArgumentException("Current verb ({$requestMethod}) is an invalid REST verb.");
+			}
+		} catch (Exception $e) {
+			curl_close($curlHandle);
+			throw $e;
+		}
+		curl_close($curlHandle);
+
+		return $response;
+	}
+
+	private function doExecute($curlHandle, Request $request)
+	{
+		curl_setopt($curlHandle, CURLOPT_TIMEOUT, 10);
+		curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
+
+		curl_setopt($curlHandle, CURLOPT_HEADER, true);
+		curl_setopt($curlHandle, CURLOPT_HTTPHEADER, array('Accept: ' . $request->getHttpAccept()));
+
 		$res = curl_exec($curlHandle);
 		$info = curl_getinfo($curlHandle);
-
-		curl_close($curlHandle);
 
 		$response = new Response();
 
@@ -32,37 +61,60 @@ class RestClient
 		return $response;
 	}
 
-	/**
-	 * @param $curlHandle
-	 * @param \Yuka\Beresta\SimpleRestClient\Request $request
-	 * @throws \Exception
-	 */
-	private function setCurlOptions($curlHandle, Request $request)
+	private function executeGet($curlHandle, Request $request)
 	{
-		$requestMethod = $request->getMethod();
-		switch (strtoupper($requestMethod)) {
-			case 'GET':
-				curl_setopt($curlHandle, CURLOPT_URL, $this->buildGetUrl($request->getServiceUrl().$request->getUri(), $request->getParameters()));
-				break;
-			case 'POST':
-				curl_setopt($curlHandle, CURLOPT_URL, $request->getServiceUrl().$request->getUri());
-				curl_setopt($curlHandle, CURLOPT_POST, 1);
+		$getUrl = $this->buildGetUrl($request->getServiceUrl().$request->getUri(), $request->getParameters());
+		curl_setopt($curlHandle, CURLOPT_URL, $getUrl);
 
-				$requestVars = $request->getParameters();
-				curl_setopt($curlHandle, CURLOPT_POSTFIELDS, $this->buildPostBody($requestVars));
-				break;
-			default:
-				throw new \Exception('Current verb (' . $requestMethod . ') is an invalid REST verb.');
-				break;
+		return $this->doExecute($curlHandle, $request);
+	}
+
+	private function executePost($curlHandle, Request $request)
+	{
+		curl_setopt($curlHandle, CURLOPT_URL, $request->getServiceUrl().$request->getUri());
+
+		$requestVars = $request->getParameters();
+		curl_setopt($curlHandle, CURLOPT_POSTFIELDS, $this->buildPostBody($requestVars));
+		curl_setopt($curlHandle, CURLOPT_POSTFIELDS, $this->requestBody);
+		curl_setopt($curlHandle, CURLOPT_POST, 1);
+
+		return $this->doExecute($curlHandle, $request);
+	}
+
+	private function executePut($curlHandle, Request $request)
+	{
+		curl_setopt($curlHandle, CURLOPT_URL, $request->getServiceUrl().$request->getUri());
+
+		$requestBody = '';
+		$requestLength = 0;
+
+		$requestVars = $request->getParameters();
+		if (count($requestVars) > 0) {
+			$requestBody = $this->buildPostBody($requestVars);
+			$requestLength = strlen($requestBody);
 		}
-		curl_setopt($curlHandle, CURLOPT_HEADER, true);
-		$headers = array (
-			'Accept: ' . $request->getHttpAccept()
-		);
 
-		curl_setopt($curlHandle, CURLOPT_HTTPHEADER, $headers);
-		curl_setopt($curlHandle, CURLOPT_TIMEOUT, 60);
-		curl_setopt($curlHandle, CURLOPT_RETURNTRANSFER, true);
+		$fh = fopen('php://memory', 'rw');
+		fwrite($fh, $requestBody);
+		rewind($fh);
+
+		curl_setopt($curlHandle, CURLOPT_INFILE, $fh);
+		curl_setopt($curlHandle, CURLOPT_INFILESIZE, $requestLength);
+		curl_setopt($curlHandle, CURLOPT_PUT, true);
+
+		$response = $this->doExecute($curlHandle, $request);
+
+		fclose($fh);
+
+		return $response;
+	}
+
+	private function executeDelete($curlHandle, Request $request)
+	{
+		curl_setopt($curlHandle, CURLOPT_URL, $request->getServiceUrl().$request->getUri());
+
+		curl_setopt($curlHandle, CURLOPT_CUSTOMREQUEST, 'DELETE');
+		return $this->doExecute($curlHandle, $request);
 	}
 
 	/**

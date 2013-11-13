@@ -74,7 +74,7 @@ class RestContext extends BehatContext
 	{
 		$baseUrl = $this->getParameter('base_url');
 
-		$validMethods = array('GET', 'POST');
+		$validMethods = array('GET', 'POST', 'PUT', 'DELETE');
 		if (!in_array($method, $validMethods)) {
 			throw new \Exception('Unknown method!');
 		}
@@ -115,6 +115,27 @@ class RestContext extends BehatContext
 	public function clientRequestsPost($uri)
 	{
 		$this->request('POST', $uri);
+	}
+
+	/**
+	 * @When /^client send (?:a )?POST request on "([^"]*)" with parameters:$/
+	 */
+	public function clientRequestsPostWithParameters($uri, TableNode $parameters)
+	{
+		$requestParameters = array();
+		foreach ($parameters->getRows() as $row) {
+			$requestParameters[$row[0]] = $row[1];
+		}
+
+		$this->request('POST', $uri, $requestParameters);
+	}
+
+	/**
+	 * @When /^client send DELETE request on "([^"]*)"$/
+	 */
+	public function clientRequestsDelete($uri)
+	{
+		$this->request('DELETE', $uri);
 	}
 
 	/**
