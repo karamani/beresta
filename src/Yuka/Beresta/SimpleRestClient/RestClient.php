@@ -74,10 +74,7 @@ class RestClient
 		curl_setopt($curlHandle, CURLOPT_URL, $request->getServiceUrl().$request->getUri());
 
 		$requestVars = $request->getParameters();
-		curl_setopt($curlHandle, CURLOPT_POSTFIELDS, $this->buildPostBody($requestVars));
-		curl_setopt($curlHandle, CURLOPT_POSTFIELDS, $this->requestBody);
-		curl_setopt($curlHandle, CURLOPT_POST, 1);
-
+        curl_setopt($curlHandle, CURLOPT_POSTFIELDS, self::convertArray($requestVars));
 		return $this->doExecute($curlHandle, $request);
 	}
 
@@ -144,4 +141,30 @@ class RestClient
 
 		return $url . '?' . $parametersAsString;
 	}
+
+
+    /**Преобразует многомерный массив в одномерный, адаптированный для curl.
+     * @param $data
+     * @param string $path
+     * @return array
+     */
+    private static function convertArray($data, $path = '') {
+        $out = array();
+        if (is_array($data)) {
+            foreach ($data as $k=>$value) {
+                $path1 = $path ? $path . "[$k]" : $k;
+                $result = self::convertArray($value, $path1);
+                if (is_array($result)) {
+                    foreach ($result as $k2=>$val2) {
+                        $out[$k2] = $val2;
+                    }
+                } else {
+                    $out[$path1] = $result;
+                }
+            }
+            return $out;
+        } else {
+            return $data;
+        }
+    }
 }
