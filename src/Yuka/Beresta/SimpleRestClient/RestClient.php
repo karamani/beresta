@@ -28,9 +28,9 @@ class RestClient
 					$response = $this->executeDelete($curlHandle, $request);
 					break;
 				default:
-					throw new InvalidArgumentException("Current verb ({$requestMethod}) is an invalid REST verb.");
+					throw new \InvalidArgumentException("Current verb ({$requestMethod}) is an invalid REST verb.");
 			}
-		} catch (Exception $e) {
+		} catch (\Exception $e) {
 			curl_close($curlHandle);
 			throw $e;
 		}
@@ -143,7 +143,9 @@ class RestClient
 	}
 
 
-    /**Преобразует многомерный массив в одномерный, адаптированный для curl.
+    /**
+	 * Converts a multidimensional array in a one-dimensional. Special for curl.
+	 *
      * @param $data
      * @param string $path
      * @return array

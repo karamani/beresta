@@ -17,22 +17,22 @@ class RestContext extends BehatContext
 	/**
 	 * @var Request|null
 	 */
-	private $restRequest = null;
+	protected $restRequest = null;
 
 	/**
 	 * @var RestClient|null
 	 */
-	private $restClient = null;
+	protected $restClient = null;
 
 	/**
 	 * @var array|null
 	 */
-	private $parameters = null;
+	protected $parameters = null;
 
 	/**
 	 * @var Response|null
 	 */
-	private $response = null;
+	protected $response = null;
 
 	/**
 	 * Initializes context.
